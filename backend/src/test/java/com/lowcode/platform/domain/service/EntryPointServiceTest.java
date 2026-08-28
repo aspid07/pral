@@ -105,8 +105,10 @@ class EntryPointServiceTest {
     void delete_insufficientRoleOnHomeProject_throwsNotFound_deletesNothing() {
         UUID entryPointId = UUID.randomUUID();
         UUID homeProjectId = UUID.randomUUID();
-        EntryPoint entryPoint = mock(EntryPoint.class);
-        when(entryPointRepository.findById(entryPointId)).thenReturn(Optional.of(entryPoint));
+        // entryPointRepository.findById НЕ стабится намеренно: guard в
+        // EntryPointService.delete() идёт ПЕРВЫМ, до findOrThrow(), так что
+        // само тело сущности не понадобится ни разу — сам этот факт и
+        // проверяется ниже через verify(never()).
         when(projectResolver.resolveProjectId(entryPointId)).thenReturn(homeProjectId);
         doThrow(new EntityNotFoundException("Project", homeProjectId))
                 .when(permissionService).requireOnProject(homeProjectId, userId, Role.EDITOR);
@@ -115,6 +117,7 @@ class EntryPointServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(entryPointRepository, never()).delete(any());
+        verify(entryPointRepository, never()).findById(any());
     }
 
     @Test
