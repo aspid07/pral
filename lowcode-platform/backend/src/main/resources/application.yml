@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: lowcode-platform
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:lowcode}
+    username: ${DB_USER:lowcode}
+    password: ${DB_PASSWORD:lowcode}
+  jpa:
+    hibernate:
+      ddl-auto: validate # схема управляется миграциями (Flyway/Liquibase — TODO)
+    open-in-view: false
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    # ⚠ Значение по умолчанию — ТОЛЬКО для локальной разработки. В любом
+    # реальном окружении обязательно переопределить через переменную
+    # окружения JWT_SECRET (см. .env / docker-compose.yml) — иначе кто угодно,
+    # у кого есть исходники, может подписывать себе токены. Keys.hmacShaKeyFor
+    # (JwtService) требует минимум 32 байта — короче секрет уронит приложение
+    # при старте (WeakKeyException), а не тихо сработает с ослабленной подписью.
+    secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-before-any-real-deployment}
+    # Access-токен — короткоживущий по дизайну (см. JwtService): "долгую"
+    # сессию теперь несёт refresh-токен (app.refresh-token ниже), не этот TTL.
+    # Было 86400000 (24ч) до появления refresh-флоу.
+    expiration-ms: 900000 # 15 минут
+  refresh-token:
+    # Sliding window: каждый успешный POST /auth/refresh продлевает срок
+    # действия заново на этот TTL от текущего момента (см. RefreshTokenService.rotate),
+    # а не фиксирует его один раз при первом login.
+    ttl-days: 7
+    # Secure-флаг на refresh-cookie (обязателен реальным браузерам для
+    # SameSite=Strict/Lax по актуальным правилам, и в любом случае must-have
+    # для httpOnly-секрета такого масштаба). localhost браузеры трактуют как
+    # potentially trustworthy origin наравне с https — Secure-cookie работает
+    # и на голом http://localhost при локальной разработке, отдельно
+    # выключать для dev не требуется. Переопределяется только если сами
+    # разворачиваете bakend без TLS на реальном хосте (не localhost) —
+    # тогда осознанно выставьте false через REFRESH_COOKIE_SECURE.
+    cookie-secure: ${REFRESH_COOKIE_SECURE:true}
