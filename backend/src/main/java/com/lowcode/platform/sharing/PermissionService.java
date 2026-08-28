@@ -15,7 +15,7 @@ import java.util.UUID;
  * Scenario-роль (точечно) — независимые источники, эффективная роль на
  * сценарии = max() из обоих.
  *
- * Второе ревью CTO, находки ASAP-1/ASAP-2 (BOLA): effectiveRoleOn*/hasAtLeastOn*
+ * Второе ревью CTO, находки ASAP-1/ASAP-2 (BOLA): effectiveRoleOn* / hasAtLeastOn*
  * ВЫЧИСЛЯЛИ роль корректно и были покрыты тестами, но ни один контроллер их не
  * ВЫЗЫВАЛ — доступ по прямому id (GET/PATCH/DELETE) не проверял вообще ничего,
  * кроме валидного JWT. requireOnProject/requireOnScenario ниже — единая точка
