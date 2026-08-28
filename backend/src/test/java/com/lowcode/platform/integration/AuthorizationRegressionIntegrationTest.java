@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -73,6 +74,16 @@ class AuthorizationRegressionIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // TestRestTemplate по умолчанию — на SimpleClientHttpRequestFactory
+        // (JDK HttpURLConnection): PATCH не поддерживается штатно
+        // (ProtocolException — HttpURLConnection в принципе не умеет в PATCH),
+        // а POST, получивший 401/403-подобный отказ, в отдельных случаях
+        // кидает HttpRetryException вместо ResponseEntity со статусом.
+        // Apache HttpClient 5 обеих проблем не имеет — этот тест-сьют активно
+        // использует и PATCH (otherUser_cannotUpdateProject), и ответы с
+        // отказом на POST (start run, share, members).
+        rest.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+
         AuthDto.TokenResponse owner = register("owner");
         AuthDto.TokenResponse intruder = register("intruder");
         ownerToken = owner.accessToken();

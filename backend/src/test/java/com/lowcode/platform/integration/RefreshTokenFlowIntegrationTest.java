@@ -1,6 +1,7 @@
 package com.lowcode.platform.integration;
 
 import com.lowcode.platform.auth.AuthDto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -48,6 +50,20 @@ class RefreshTokenFlowIntegrationTest {
 
     @Autowired
     private TestRestTemplate rest;
+
+    /**
+     * TestRestTemplate по умолчанию — на SimpleClientHttpRequestFactory (JDK
+     * HttpURLConnection): POST-запрос, получивший 401 (именно этот сценарий
+     * тут кругом — reuse-detection, logout, отсутствующая cookie), кидает
+     * HttpRetryException вместо того, чтобы просто отдать ResponseEntity со
+     * статусом — JDK пытается провести retry аутентификации и не может
+     * сделать это в streaming-режиме, раз тело запроса уже отправлено.
+     * Apache HttpClient 5 этой проблемы не имеет.
+     */
+    @BeforeEach
+    void useApacheHttpClient() {
+        rest.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+    }
 
     /**
      * Ротация: refresh валидной cookie выдаёт новый access и НОВУЮ

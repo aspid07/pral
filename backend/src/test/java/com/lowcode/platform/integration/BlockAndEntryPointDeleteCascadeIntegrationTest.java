@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -58,6 +59,16 @@ class BlockAndEntryPointDeleteCascadeIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // TestRestTemplate по умолчанию — на SimpleClientHttpRequestFactory
+        // (JDK HttpURLConnection), у которого есть известные проблемы с PATCH
+        // и с POST-ответами на отказ (см. AuthorizationRegressionIntegrationTest/
+        // RefreshTokenFlowIntegrationTest — там эти проблемы реально
+        // проявились). Этот тест их пока не задевает (только GET/POST/DELETE
+        // с успешными кодами), но держим клиент одинаковым во всех
+        // интеграционных тестах — не тот случай, где стоит держать разное
+        // поведение "потому что пока работает".
+        rest.getRestTemplate().setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+
         // Stage 4: все /api/v1/** кроме /auth/** теперь требуют аутентификации —
         // регистрируем тестового пользователя один раз и вешаем его токен на
         // КАЖДЫЙ последующий запрос через интерцептор, а не переписываем
